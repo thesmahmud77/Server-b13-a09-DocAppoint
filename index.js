@@ -22,6 +22,7 @@ const client = new MongoClient(uri, {
 const db = client.db("DocAppoint");
 const doctorsCollection = db.collection("Doctors");
 const appointmentCollection = db.collection("Appointments");
+const userCollection = db.collection("user");
 
 // async function run() {
 //   try {
@@ -88,30 +89,45 @@ app.get("/appointments", async (req, res) => {
 });
 
 app.delete("/appointments/:id", async (req, res) => {
-  const id = req.params.id; // ক্লায়েন্ট থেকে পাঠানো আইডি রিসিভ করা
+  const id = req.params.id;
 
-  // আইডি ভ্যালিডেশন (মঙ্গোডিবির ObjectId ফরম্যাট চেক করা)
   if (!ObjectId.isValid(id)) {
     return res.status(400).send({ message: "Invalid appointment ID format" });
   }
 
   try {
-    // ডিলিট করার জন্য কুয়েরি তৈরি করা
     const query = { _id: new ObjectId(id) };
 
-    // ডাটাবেজ থেকে একটি ডকুমেন্ট ডিলিট করা
     const result = await appointmentCollection.deleteOne(query);
 
     if (result.deletedCount === 1) {
-      res.status(200).send(result); // সফলভাবে ডিলিট হলে রেসপন্স পাঠানো
+      res.status(200).send(result);
     } else {
-      res.status(404).send({ message: "Appointment not found" }); // আইডি না পাওয়া গেলে
+      res.status(404).send({ message: "Appointment not found" });
     }
   } catch (error) {
     console.error("Error deleting appointment:", error);
     res.status(500).send({ message: "Internal Server Error", error });
   }
 });
+
+app.patch("/update-user", async (req, res) => {
+  try {
+    const email = req.query.email;
+    const { name, photo } = req.body;
+
+    // উপরে যে userCollection আগে থেকেই বানানো আছে, সেটাই ব্যবহার করো
+    const result = await userCollection.updateOne(
+      { email: email },
+      { $set: { name: name, image: photo } },
+    );
+    res.send(result);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({ message: "Something went wrong" });
+  }
+});
+
 // Send a ping to confirm a successful connection
 // await client.db("admin").command({ ping: 1 });
 //     console.log(
