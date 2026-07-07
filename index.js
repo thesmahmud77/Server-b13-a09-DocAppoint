@@ -128,6 +128,78 @@ app.patch("/update-user", async (req, res) => {
   }
 });
 
+// একটা নির্দিষ্ট appointment আইডি দিয়ে fetch করার জন্য
+app.get("/appointments/:id", async (req, res) => {
+  const id = req.params.id;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).send({ message: "Invalid appointment ID format" });
+  }
+
+  try {
+    const query = { _id: new ObjectId(id) };
+    const result = await appointmentCollection.findOne(query);
+
+    if (!result) {
+      return res.status(404).send({ message: "Appointment not found" });
+    }
+
+    res.send(result);
+  } catch (error) {
+    console.error("Error fetching appointment:", error);
+    res
+      .status(500)
+      .send({ message: "Internal Server Error", error: error.message });
+  }
+});
+
+// appointment আপডেট করার জন্য
+app.patch("/appointments/:id", async (req, res) => {
+  const id = req.params.id;
+  const updatedData = req.body;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).send({ message: "Invalid appointment ID format" });
+  }
+
+  try {
+    const query = { _id: new ObjectId(id) };
+    const result = await appointmentCollection.updateOne(query, {
+      $set: updatedData,
+    });
+
+    res.send(result);
+  } catch (error) {
+    console.error("Error updating appointment:", error);
+    res
+      .status(500)
+      .send({ message: "Internal Server Error", error: error.message });
+  }
+});
+
+app.get("/doctors/search", async (req, res) => {
+  const query = req.query.query || "";
+
+  try {
+    const searchQuery = query
+      ? {
+          $or: [
+            { name: { $regex: query, $options: "i" } },
+            { specialty: { $regex: query, $options: "i" } },
+          ],
+        }
+      : {};
+
+    const result = await doctorsCollection.find(searchQuery).toArray();
+    res.send(result);
+  } catch (error) {
+    console.error("Error searching doctors:", error);
+    res
+      .status(500)
+      .send({ message: "Internal Server Error", error: error.message });
+  }
+});
+
 // Send a ping to confirm a successful connection
 // await client.db("admin").command({ ping: 1 });
 //     console.log(
